@@ -6,11 +6,11 @@ architecture featuring write-ahead logging (WAL), memtables, SSTables, and async
 ## 🚀 Project Roadmap & Implementation Checklist
 
 ### Phase 1: Project Setup & Core Types
-- [ ] Define the core `Key` and `Value` types (e.g., `type Key = Vec<u8>;`, `type Value = Vec<u8>;`).
-- [ ] Define an `Entry` enum representing a database operation:
+- [x] Define the core `Key` and `Value` types (e.g., `type Key = Vec<u8>;`, `type Value = Vec<u8>;`).
+- [x] Define an `Entry` enum representing a database operation:
   - `Put(Key, Value)`
   - `Delete(Key)` (Tombstone)
-- [ ] Setup a custom `Error` type for the storage engine using `thiserror` or standard library.
+- [x] Setup a custom `Error` type for the storage engine using `thiserror` or standard library.
 
 ### Phase 2: The MemTable (In-Memory Storage)
 The MemTable handles active, incoming writes before they are flushed to disk.
