@@ -24,8 +24,8 @@ The MemTable handles active, incoming writes before they are flushed to disk.
 
 ### Phase 3: Write-Ahead Log (WAL)
 To prevent data loss during a crash, all operations must be written to disk before modifying the MemTable.
-- [ ] Define a binary record format on disk (e.g., `[CRC32 (4 bytes)] [Key Length (2 bytes)] [Key] [Value Length (4 bytes)] [Value]`).
-- [ ] Implement `WalWriter`:
+- [x] Define a binary record format on disk (e.g., `[CRC32 (4 bytes)] [Key Length (2 bytes)] [Key] [Value Length (4 bytes)] [Value]`).
+- [x] Implement `WalWriter`:
   - Open a file in append-only mode.
   - Write encoded operations (`Put` and `Delete`) to the file.
   - Implement a `sync` method to fsync data to disk.
