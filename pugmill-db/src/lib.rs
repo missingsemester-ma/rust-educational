@@ -1,14 +1,15 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use thiserror::Error;
+
+type Key = Vec<u8>;
+type Value = Vec<u8>;
+
+enum Entry {
+    Put(Key, Value),
+    Delete(Key),
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[derive(Error, Debug)]
+enum PugError {
+    #[error("unknown error!")]
+    Unknown,
 }
