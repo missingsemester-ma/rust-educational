@@ -13,3 +13,7 @@ enum PugError {
     #[error("unknown error!")]
     Unknown,
 }
+
+type Result<T> = std::result::Result<T, PugError>;
+
+pub(crate) mod memtable;

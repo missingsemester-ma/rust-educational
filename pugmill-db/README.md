@@ -14,12 +14,13 @@ architecture featuring write-ahead logging (WAL), memtables, SSTables, and async
 
 ### Phase 2: The MemTable (In-Memory Storage)
 The MemTable handles active, incoming writes before they are flushed to disk.
-- [ ] Implement a sorted, in-memory data structure (e.g., a wrapper around `std::collections::BTreeMap` or a custom `SkipList` for better concurrency).
-- [ ] Implement `put(key, value)`: Insert or update an entry.
-- [ ] Implement `get(key)`: Retrieve a value, handling tombstones (return `None` if deleted).
-- [ ] Implement `delete(key)`: Insert a tombstone record.
-- [ ] Add an atomic memory tracker to calculate the approximate byte size of the MemTable (to trigger flushes when it gets too large).
-- [ ] Write unit tests for MemTable operations.
+- [x] Implement a sorted, in-memory data structure (e.g., a wrapper around `std::collections::BTreeMap` or a custom `SkipList` for better concurrency).
+- [x] Implement `put(key, value)`: Insert or update an entry.
+- [x] Implement `get(key)`: Retrieve a value, handling tombstones (return `None` if deleted).
+- [x] Implement `delete(key)`: Insert a tombstone record.
+- [x] Add an atomic memory tracker to calculate the approximate byte size of the MemTable (to trigger flushes when it gets too large).
+    - [ ] Add atomimicity.
+- [x] Write unit tests for MemTable operations.
 
 ### Phase 3: Write-Ahead Log (WAL)
 To prevent data loss during a crash, all operations must be written to disk before modifying the MemTable.
