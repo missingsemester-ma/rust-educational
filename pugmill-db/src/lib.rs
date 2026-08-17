@@ -18,6 +18,12 @@ enum PugError {
 
     #[error("failed to encode/decode wal entry: {0}")]
     WalEncode(String),
+
+    #[error("invalid CRC when parsing entry")]
+    InvalidCRC,
+
+    #[error("unepexcted operation: {0}")]
+    UnepectedOperation(u8),
 }
 
 type Result<T> = std::result::Result<T, PugError>;
