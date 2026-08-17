@@ -1,0 +1,25 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./pugmill-db
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build pugmill-db
+      run: cargo build --verbose
+    - name: Run tests on pugmilld-db
+      run: cargo test --verbose
