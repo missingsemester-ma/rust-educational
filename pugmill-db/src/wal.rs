@@ -1,5 +1,5 @@
 use crate::{Entry, Result};
-use bytes::{BufMut, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 use std::io::Write;
 use std::{
     fs::{File, OpenOptions},
@@ -26,7 +26,7 @@ impl WalWriter {
         Ok(())
     }
 
-    fn build_entry(entry: Entry) -> BytesMut {
+    fn build_entry(entry: Entry) -> Bytes {
         let (crc, op) = match entry {
             Entry::Put(key, value) => {
                 let mut buf = vec![];
@@ -46,7 +46,7 @@ impl WalWriter {
         let mut buf = BytesMut::new();
         buf.put_u32(crc);
         buf.put_slice(&op);
-        buf
+        buf.into()
     }
 }
 
