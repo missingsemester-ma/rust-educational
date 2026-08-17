@@ -1,5 +1,5 @@
-use crate::{Entry, PugError, Result};
-use bincode::{Decode, Encode, config};
+use crate::{Entry, Result};
+use bytes::{BufMut, BytesMut};
 use std::io::Write;
 use std::{
     fs::{File, OpenOptions},
@@ -10,65 +10,43 @@ pub(crate) struct WalWriter {
     fs: File,
 }
 
-#[derive(Decode, Encode, PartialEq, Debug)]
-struct WalEntry {
-    crc: u32,
-
-    op: WalOp,
-}
-
-#[derive(Decode, Encode, PartialEq, Debug)]
-enum WalOp {
-    Put { key: Vec<u8>, value: Vec<u8> },
-    Del { key: Vec<u8> },
-}
-
 impl WalWriter {
     pub(crate) fn new(path: &Path) -> Result<Self> {
-        let fs = OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(path)
-            .map_err(|e| PugError::WalOp(e))?;
+        let fs = OpenOptions::new().append(true).create(true).open(path)?;
 
         Ok(WalWriter { fs })
     }
 
     pub(crate) fn append(&mut self, entry: Entry) -> Result<()> {
         let wal_entry = Self::build_entry(entry);
-        let encoded_entry = bincode::encode_to_vec(wal_entry, config::standard())
-            .map_err(|e| PugError::WalEncode(e.to_string()))?;
 
-        self.fs
-            .write_all(&encoded_entry)
-            .map_err(|e| PugError::WalOp(e))?;
-        self.fs.sync_all().map_err(|e| PugError::WalOp(e))?;
+        self.fs.write_all(&wal_entry)?;
+        self.fs.sync_all()?;
 
         Ok(())
     }
 
-    fn build_entry(entry: Entry) -> WalEntry {
+    fn build_entry(entry: Entry) -> BytesMut {
         let (crc, op) = match entry {
             Entry::Put(key, value) => {
-                let mut hasher = crc32fast::Hasher::new();
-                hasher.update(&key);
-                hasher.update(&value);
-                (
-                    hasher.finalize(),
-                    WalOp::Put {
-                        key: key,
-                        value: value,
-                    },
-                )
+                let mut buf = vec![];
+                buf.put_u8(0u8);
+                buf.put_slice(&key[..]);
+                buf.put_slice(&value[..]);
+                (crc32fast::hash(&buf[..]), buf)
             }
             Entry::Delete(key) => {
-                let mut hasher = crc32fast::Hasher::new();
-                hasher.update(&key);
-                (hasher.finalize(), WalOp::Del { key: key })
+                let mut buf = vec![];
+                buf.put_u8(1u8);
+                buf.put_slice(&key[..]);
+                (crc32fast::hash(&buf[..]), buf)
             }
         };
 
-        WalEntry { crc, op }
+        let mut buf = BytesMut::new();
+        buf.put_u32(crc);
+        buf.put_slice(&op);
+        buf
     }
 }
 
@@ -108,6 +86,6 @@ mod tests {
         file.read_to_end(&mut buf).expect("should read file");
 
         dbg!(&buf);
-        assert_eq!(buf.len(), 16);
+        assert_eq!(buf.len(), 13);
     }
 }
