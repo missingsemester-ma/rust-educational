@@ -1,5 +1,5 @@
-use crate::{Entry, PugError, Result};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use crate::{Entry, Result};
+use bytes::{Buf, BufMut, Bytes};
 use std::io::{Read, Write};
 use std::{
     fs::{File, OpenOptions},
@@ -18,38 +18,12 @@ impl WalWriter {
     }
 
     pub(crate) fn append(&mut self, entry: Entry) -> Result<()> {
-        let wal_entry = Self::build_entry(entry);
+        let wal_entry: Bytes = (&entry).into();
 
         self.fs.write_all(&wal_entry)?;
         self.fs.sync_all()?;
 
         Ok(())
-    }
-
-    fn build_entry(entry: Entry) -> Bytes {
-        let (crc, op) = match entry {
-            Entry::Put(key, value) => {
-                let mut buf = vec![];
-                buf.put_u8(0u8);
-                buf.put_u32(key.len() as u32);
-                buf.put_slice(&key[..]);
-                buf.put_u32(value.len() as u32);
-                buf.put_slice(&value[..]);
-                (crc32fast::hash(&buf[..]), buf)
-            }
-            Entry::Delete(key) => {
-                let mut buf = vec![];
-                buf.put_u8(1u8);
-                buf.put_u32(key.len() as u32);
-                buf.put_slice(&key[..]);
-                (crc32fast::hash(&buf[..]), buf)
-            }
-        };
-
-        let mut buf = BytesMut::new();
-        buf.put_u32(crc);
-        buf.put_slice(&op);
-        buf.into()
     }
 }
 
@@ -75,43 +49,15 @@ impl WalReader {
     pub(crate) fn all_entries(&mut self) -> Result<Vec<Entry>> {
         let mut buf = vec![];
         self.fs.read_to_end(&mut buf)?;
+        let mut entries_buf = Bytes::from(buf);
         let mut entries = vec![];
-        let mut buf = BytesMut::from(&buf[..]);
 
-        while buf.has_remaining() {
-            let entry = Self::parse_entry(&mut buf)?;
+        while entries_buf.has_remaining() {
+            let entry: Entry = (&mut entries_buf).try_into()?;
             entries.push(entry);
         }
 
         Ok(entries)
-    }
-
-    fn parse_entry(buf: &mut BytesMut) -> Result<Entry> {
-        let crc = buf.get_u32();
-        let op = buf.get_u8();
-
-        let entry = match op {
-            0u8 => {
-                let ksize = buf.get_u32();
-                let key = buf.copy_to_bytes(ksize as usize).to_vec();
-                let vsize = buf.get_u32();
-                let value = buf.copy_to_bytes(vsize as usize).to_vec();
-                Entry::Put(key, value)
-            }
-            1u8 => {
-                let ksize = buf.get_u32();
-                let key = buf.copy_to_bytes(ksize as usize).to_vec();
-                Entry::Delete(key)
-            }
-            _ => return Err(PugError::UnepectedOperation(op)),
-        };
-
-        let actual_crc = compute_crc(&entry);
-
-        if actual_crc != crc {
-            return Err(PugError::InvalidCRC);
-        }
-        Ok(entry)
     }
 }
 
@@ -138,7 +84,7 @@ pub(crate) fn compute_crc(entry: &Entry) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use std::{ascii::AsciiExt, assert_matches, io::Read};
+    use std::io::Read;
 
     use super::*;
     use tempfile::NamedTempFile;
@@ -146,34 +92,39 @@ mod tests {
     #[test]
     fn it_works() {
         let file = NamedTempFile::new().expect("should create temporary file");
-        let mut wal = WalWriter::new(file.path()).expect("should create WalWriter");
+        let mut wal_writer = WalWriter::new(file.path()).expect("should create WalWriter");
 
-        assert!(
-            wal.append(Entry::Put(
-                b"key".to_ascii_uppercase(),
-                b"value".to_ascii_uppercase()
-            ))
-            .is_ok()
-        );
-        let mut buf = Vec::new();
+        let put_entry = Entry::Put(Bytes::from("key"), Bytes::from("value"));
+        let del_entry = Entry::Delete(Bytes::from("key"));
 
-        let mut write_file = OpenOptions::new()
-            .read(true)
-            .open(file.path())
-            .expect("should open file");
-        write_file.read_to_end(&mut buf).expect("should read file");
-        assert_eq!(buf.len(), 21);
+        wal_writer
+            .append(put_entry)
+            .expect("should append PUT entry");
+        wal_writer
+            .append(del_entry)
+            .expect("should append DELETE entry");
 
-        let mut read_wal = WalReader::new(file.path()).expect("should create wal reader");
-        let entries = read_wal.all_entries().expect("should read all entries");
-        let first = entries.first().expect("There should be one entry.");
-        match first {
+        // drop(wal_writer);
+
+        let mut wal_reader = WalReader::new(file.path()).expect("should create WalReader");
+        let entries = wal_reader.all_entries().expect("should read all entries");
+
+        assert_eq!(entries.len(), 2);
+
+        match &entries[0] {
             Entry::Put(k, v) => {
-                assert_eq!(k, &b"key".to_ascii_uppercase());
-                assert_eq!(v, &b"value".to_ascii_uppercase());
+                assert_eq!(k, &Bytes::from("key"));
+                assert_eq!(v, &Bytes::from("value"));
             }
             Entry::Delete(_) => {
-                assert!(false);
+                panic!("PUT entry expected.")
+            }
+        }
+
+        match &entries[1] {
+            Entry::Put(_, _) => panic!("unepected entry"),
+            Entry::Delete(k) => {
+                assert_eq!(k, &Bytes::from("key"));
             }
         }
     }
