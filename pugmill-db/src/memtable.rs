@@ -57,10 +57,11 @@ impl MemTable {
 
 #[cfg(test)]
 mod tests {
+    use bytes::Bytes;
     use super::*;
 
     fn key_val(key: &str, val: &str) -> (Key, Value) {
-        (key.bytes().collect::<_>(), val.bytes().collect::<_>())
+        (Bytes::from(key.to_owned()), Bytes::from(val.to_owned()))
     }
 
     #[test]

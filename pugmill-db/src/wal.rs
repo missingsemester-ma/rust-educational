@@ -84,8 +84,6 @@ pub(crate) fn compute_crc(entry: &Entry) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
-
     use super::*;
     use tempfile::NamedTempFile;
 
@@ -104,7 +102,8 @@ mod tests {
             .append(del_entry)
             .expect("should append DELETE entry");
 
-        // drop(wal_writer);
+        // drop(wal_writer) is intentionally omitted; sync_all in WalWriter::append
+        // ensures data is flushed before reading.
 
         let mut wal_reader = WalReader::new(file.path()).expect("should create WalReader");
         let entries = wal_reader.all_entries().expect("should read all entries");
@@ -122,7 +121,7 @@ mod tests {
         }
 
         match &entries[1] {
-            Entry::Put(_, _) => panic!("unepected entry"),
+            Entry::Put(_, _) => panic!("unexpected entry"),
             Entry::Delete(k) => {
                 assert_eq!(k, &Bytes::from("key"));
             }
