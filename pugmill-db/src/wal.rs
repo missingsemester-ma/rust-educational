@@ -84,8 +84,6 @@ pub(crate) fn compute_crc(entry: &Entry) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
-
     use super::*;
     use tempfile::NamedTempFile;
 
