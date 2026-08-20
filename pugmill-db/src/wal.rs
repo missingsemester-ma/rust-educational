@@ -1,5 +1,5 @@
 use crate::{Entry, Result};
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use std::io::{Read, Write};
 use std::{
     fs::{File, OpenOptions},
