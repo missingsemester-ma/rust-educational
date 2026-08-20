@@ -34,7 +34,7 @@ impl MemTable {
 
     pub(crate) fn put(&mut self, key: Key, value: Value) -> Result<()> {
         self.wal_writer
-            .append(crate::Entry::Put(key.clone(), value.clone()))?;
+            .append(Entry::Put(key.clone(), value.clone()))?;
         self.mem_usage += key.len() + value.len();
         self.store.insert(key, MapEntry::Present(value));
         Ok(())

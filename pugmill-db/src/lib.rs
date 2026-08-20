@@ -86,7 +86,7 @@ impl TryFrom<&mut Bytes> for Entry {
                 let key = buf.copy_to_bytes(ksize);
                 Entry::Delete(key)
             }
-            _ => return Err(PugError::UnepectedOperation(op)),
+            _ => return Err(PugError::UnexpectedOperation(op)),
         };
 
         if entry.compute_crc() != expected_crc {
@@ -110,8 +110,8 @@ enum PugError {
     #[error("invalid CRC when parsing entry")]
     InvalidCRC,
 
-    #[error("unepexcted operation: {0}")]
-    UnepectedOperation(u8),
+    #[error("unexpected operation: {0}")]
+    UnexpectedOperation(u8),
 }
 
 type Result<T> = std::result::Result<T, PugError>;
