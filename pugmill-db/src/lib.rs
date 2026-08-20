@@ -70,19 +70,54 @@ impl TryFrom<&mut Bytes> for Entry {
     type Error = PugError;
 
     fn try_from(buf: &mut Bytes) -> Result<Self> {
+        if buf.remaining() < 5 {
+            return Err(PugError::WalEncode(
+                "buffer too short for header".to_string(),
+            ));
+        }
         let expected_crc = buf.get_u32();
         let op = buf.get_u8();
 
         let entry = match op {
             0u8 => {
+                if buf.remaining() < 4 {
+                    return Err(PugError::WalEncode(
+                        "buffer too short for key size".to_string(),
+                    ));
+                }
                 let ksize = buf.get_u32() as usize;
+                if buf.remaining() < ksize {
+                    return Err(PugError::WalEncode(
+                        "buffer too short for key data".to_string(),
+                    ));
+                }
                 let key = buf.copy_to_bytes(ksize);
+                if buf.remaining() < 4 {
+                    return Err(PugError::WalEncode(
+                        "buffer too short for value size".to_string(),
+                    ));
+                }
                 let vsize = buf.get_u32() as usize;
+                if buf.remaining() < vsize {
+                    return Err(PugError::WalEncode(
+                        "buffer too short for value data ".to_string(),
+                    ));
+                }
                 let value = buf.copy_to_bytes(vsize);
                 Entry::Put(key, value)
             }
             1u8 => {
+                if buf.remaining() < 4 {
+                    return Err(PugError::WalEncode(
+                        "buffer too short for key size".to_string(),
+                    ));
+                }
                 let ksize = buf.get_u32() as usize;
+                if buf.remaining() < ksize {
+                    return Err(PugError::WalEncode(
+                        "buffer too short for key data".to_string(),
+                    ));
+                }
                 let key = buf.copy_to_bytes(ksize);
                 Entry::Delete(key)
             }

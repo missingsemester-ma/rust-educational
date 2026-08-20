@@ -3,6 +3,7 @@ use std::path::Path;
 
 use crate::memtable::MapEntry::Deleted;
 use crate::memtable::MapEntry::Present;
+use crate::wal::WalReader;
 use crate::wal::WalWriter;
 use crate::{Entry, Key, Result, Value};
 
