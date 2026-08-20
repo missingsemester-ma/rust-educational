@@ -29,10 +29,10 @@ To prevent data loss during a crash, all operations must be written to disk befo
   - Open a file in append-only mode.
   - Write encoded operations (`Put` and `Delete`) to the file.
   - Implement a `sync` method to fsync data to disk.
-- [ ] Implement `WalReader`:
+- [x] Implement `WalReader`:
   - Read sequentially through a WAL file.
   - Verify CRC32 checksums to detect corrupted records.
-- [ ] Integrate WAL with MemTable: On every `put` or `delete`, write to the WAL first, then update the MemTable.
+- [x] Integrate WAL with MemTable: On every `put` or `delete`, write to the WAL first, then update the MemTable.
 - [ ] Implement crash recovery: On startup, read the WAL and reconstruct the MemTable.
 
 ### Phase 4: Sorted String Tables (SSTable) - Disk Storage

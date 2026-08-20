@@ -1,5 +1,5 @@
 use crate::{Entry, Result};
-use bytes::{Buf, BufMut, Bytes};
+use bytes::{Buf, Bytes};
 use std::io::{Read, Write};
 use std::{
     fs::{File, OpenOptions},
@@ -61,31 +61,8 @@ impl WalReader {
     }
 }
 
-pub(crate) fn compute_crc(entry: &Entry) -> u32 {
-    match entry {
-        Entry::Put(key, value) => {
-            let mut buf = vec![];
-            buf.put_u8(0u8);
-            buf.put_u32(key.len() as u32);
-            buf.put_slice(&key[..]);
-            buf.put_u32(value.len() as u32);
-            buf.put_slice(&value[..]);
-            crc32fast::hash(&buf[..])
-        }
-        Entry::Delete(key) => {
-            let mut buf = vec![];
-            buf.put_u8(1u8);
-            buf.put_u32(key.len() as u32);
-            buf.put_slice(&key[..]);
-            crc32fast::hash(&buf[..])
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
-
     use super::*;
     use tempfile::NamedTempFile;
 
@@ -104,7 +81,8 @@ mod tests {
             .append(del_entry)
             .expect("should append DELETE entry");
 
-        // drop(wal_writer);
+        // drop(wal_writer) is intentionally omitted; sync_all in WalWriter::append
+        // ensures data is flushed before reading.
 
         let mut wal_reader = WalReader::new(file.path()).expect("should create WalReader");
         let entries = wal_reader.all_entries().expect("should read all entries");
@@ -122,7 +100,7 @@ mod tests {
         }
 
         match &entries[1] {
-            Entry::Put(_, _) => panic!("unepected entry"),
+            Entry::Put(_, _) => panic!("unexepected entry"),
             Entry::Delete(k) => {
                 assert_eq!(k, &Bytes::from("key"));
             }
